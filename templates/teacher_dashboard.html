@@ -30,7 +30,18 @@
                         <td>
                             <ul style="margin: 0; padding-left: 20px;">
                                 {% for sub in student_info.submissions %}
-                                    <li><strong>{{ sub.title }}:</strong> {{ sub.status }}</li>
+                                    <li>
+                                        <strong>{{ sub.title }}:</strong> 
+                                        <span class="status 
+                                            {% if sub.status == 'Entregado' %}
+                                                status-entregado
+                                            {% elif sub.status == 'Calificado' %}
+                                                status-calificado
+                                            {% else %}
+                                                status-asignado
+                                            {% endif %}
+                                        ">{{ sub.status }}</span>
+                                    </li>
                                 {% else %}
                                     <li>No hay tareas asignadas en este curso.</li>
                                 {% endfor %}

@@ -1,5 +1,4 @@
 /* UBICACIÓN: static/style.css */
-
 :root {
     --verde-principal: #004d40;
     --naranja-acento: #ffab40;
@@ -64,15 +63,11 @@ table {
     margin-top: 1.5rem;
 }
 
-th, td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
 thead th {
     background-color: var(--verde-principal);
     color: white;
+    padding: 12px 15px;
+    text-align: left;
 }
 
 tbody tr:nth-of-type(even) {
@@ -81,4 +76,44 @@ tbody tr:nth-of-type(even) {
 
 tbody tr:hover {
     background-color: #f1f1f1;
+}
+
+/* --- MEJORAS DE ESTILO (NUEVO) --- */
+td {
+    padding: 15px; /* Aumentamos el espacio interno */
+    vertical-align: top; /* Alineamos todo arriba */
+    border-bottom: 1px solid #ddd;
+}
+
+td ul {
+    margin: 0;
+    padding-left: 0; /* Quitamos el espacio izquierdo de la lista */
+    list-style-type: none; /* Quitamos los puntos de la lista */
+}
+
+td ul li {
+    margin-bottom: 8px; /* Añadimos espacio entre las tareas */
+}
+
+/* --- Estilos para los Estados de las Tareas --- */
+.status {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: white;
+    text-transform: uppercase;
+}
+
+.status-entregado {
+    background-color: #004d40; /* Verde Semillero */
+}
+
+.status-calificado {
+    background-color: #0d47a1; /* Azul */
+}
+
+.status-asignado {
+    background-color: #ffab40; /* Naranja Semillero */
+    color: #212121;
 }

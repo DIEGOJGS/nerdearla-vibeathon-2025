@@ -7,3 +7,5 @@ __pycache__/
 
 # Archivos de configuración local (si los tuviéramos)
 .env
+
+client_secret.json
