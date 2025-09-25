@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard del Coordinador - Semillero Digital</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Panel de Coordinación</h1>
+            <a href="/logout" class="logout-link">Cerrar sesión ({{ user_name }})</a>
+        </div>
+
+        <h2>Supervisión de Células</h2>
+
+        {% if cells_data %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Email del Profesor</th>
+                        <th>Nº de Alumnos Asignados</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for teacher, count in cells_data.items() %}
+                    <tr>
+                        <td>{{ teacher }}</td>
+                        <td>{{ count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No se encontraron datos de profesores o alumnos en la base de datos.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
