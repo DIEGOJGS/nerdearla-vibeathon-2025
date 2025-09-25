@@ -3,54 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Semillero Digital</title>
+    <title>Dashboard del Profesor - Semillero Digital</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
     <div class="container">
         <div class="header">
             <h1>Bienvenido, {{ user_name }}</h1>
             <a href="/logout" class="logout-link">Cerrar sesión</a>
         </div>
         
-        {% if is_teacher %}
-            <h2>Progreso de Alumnos Asignados</h2>
+        <h2>Progreso de Alumnos Asignados</h2>
 
-            {% if students_data %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nombre del Alumno</th>
-                            <th>Progreso de Tareas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for student_info in students_data %}
-                        <tr>
-                            <td>{{ student_info.profile.name.fullName }}</td>
-                            <td>
-                                <ul style="margin: 0; padding-left: 20px;">
-                                    {% for sub in student_info.submissions %}
-                                        <li><strong>{{ sub.title }}:</strong> {{ sub.status }}</li>
-                                    {% else %}
-                                        <li>No hay tareas en este curso.</li>
-                                    {% endfor %}
-                                </ul>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No se encontraron datos de progreso para los alumnos asignados.</p>
-            {% endif %}
-        
+        {% if students_data %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre del Alumno</th>
+                        <th>Progreso de Tareas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student_info in students_data %}
+                    <tr>
+                        <td>{{ student_info.profile.name.fullName }}</td>
+                        <td>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                {% for sub in student_info.submissions %}
+                                    <li><strong>{{ sub.title }}:</strong> {{ sub.status }}</li>
+                                {% else %}
+                                    <li>No hay tareas asignadas en este curso.</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% else %}
-            <h2>Vista de Alumno</h2>
-            <p>Esta es tu vista de alumno. Próximamente verás aquí el progreso de tus cursos.</p>
+            <p>No se encontraron datos de progreso para los alumnos asignados.</p>
         {% endif %}
-
     </div>
 </body>
 </html>

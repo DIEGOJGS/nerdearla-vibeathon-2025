@@ -1,5 +1,3 @@
-print("--- CARGADO app.py v.ROLES ---")
-
 import os
 from flask import Flask, redirect, request, session, render_template
 from flask_sqlalchemy import SQLAlchemy
@@ -16,9 +14,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:final123@127.0.0.
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Para nuestro MVP, definimos al coordinador con su email.
-# Usaremos tu cuenta de profesor como si fuera el coordinador para la prueba.
-COORDINATOR_EMAIL = 'dgcodex2025@gmail.com'
+# Definimos el correo del coordinador
+COORDINATOR_EMAIL = 'pemartdro7@gmail.com'
 
 class TeacherStudentLink(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -85,11 +82,8 @@ def dashboard():
     user_email = user_info.get('email')
     user_name = user_info.get('name')
 
-    # --- LÓGICA DE ROLES ---
-
     # 1. ¿El usuario es el COORDINADOR?
     if user_email == COORDINATOR_EMAIL:
-        logging.info(f"Usuario '{user_email}' identificado como COORDINADOR.")
         all_links = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
         cells_data = {}
         for link in all_links:
@@ -97,14 +91,26 @@ def dashboard():
             if teacher not in cells_data:
                 cells_data[teacher] = 0
             cells_data[teacher] += 1
-        
         return render_template('coordinator_dashboard.html', user_name=user_name, cells_data=cells_data)
 
-    # 2. Si no, ¿es un PROFESOR?
+    # --- INICIO DE BLOQUE DE DIAGNÓSTICO ---
+    print("\n--- DIAGNÓSTICO DETALLADO PARA ROL PROFESOR/ALUMNO ---")
+    all_links_in_db = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
+    print(f"Paso A: Contenido total de la tabla 'teacher_student_link' ({len(all_links_in_db)} filas):")
+    for link in all_links_in_db:
+        print(f"  -> Fila en DB: Profesor='{link.teacher_email}' (Longitud: {len(link.teacher_email)}) | Alumno='{link.student_email}'")
+    print(f"Paso B: El email del usuario logueado es '{user_email}' (Longitud: {len(user_email)})")
+    # --- FIN DE BLOQUE DE DIAGNÓSTICO ---
+
+    # 2. Si no es coordinador, ¿es un PROFESOR?
     teacher_links = db.session.execute(db.select(TeacherStudentLink).filter_by(teacher_email=user_email)).scalars().all()
+    
+    # --- DIAGNÓSTICO ADICIONAL ---
+    print(f"Paso C: La búsqueda en DB para el profesor '{user_email}' encontró {len(teacher_links)} resultados.")
+    print("---------------------------------------------------\n")
+    # --- FIN DE DIAGNÓSTICO ADICIONAL ---
+
     if teacher_links:
-        logging.info(f"Usuario '{user_email}' identificado como PROFESOR.")
-        # (Aquí está la lógica del dashboard del profesor que ya funcionaba)
         student_emails_to_find = {link.student_email for link in teacher_links}
         students_data_with_progress = []
         
@@ -155,8 +161,11 @@ def dashboard():
 
     # 3. Si no es ninguno de los anteriores, es un ALUMNO
     else:
-        logging.info(f"Usuario '{user_email}' identificado como ALUMNO.")
-        return render_template('student_dashboard.html', user_name=user_name)
+        classroom_service = build('classroom', 'v1', credentials=creds)
+        results = classroom_service.courses().list().execute()
+        courses = results.get('courses', [])
+        
+        return render_template('student_dashboard.html', user_name=user_name, courses=courses)
 
 if __name__ == '__main__':
     app.run(debug=True)

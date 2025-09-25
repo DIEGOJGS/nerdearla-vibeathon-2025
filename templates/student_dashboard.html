@@ -12,8 +12,25 @@
             <h1>Bienvenido, Alumno {{ user_name }}</h1>
             <a href="/logout" class="logout-link">Cerrar sesión</a>
         </div>
-        <h2>Tu Progreso</h2>
-        <p>Esta es tu vista de alumno. ¡Tu dashboard de progreso está en construcción!</p>
+        <h2>Mis Cursos</h2>
+        {% if courses %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre del Curso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                    <tr>
+                        <td>{{ course.name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No estás inscrito en ningún curso.</p>
+        {% endif %}
     </div>
 </body>
 </html>
