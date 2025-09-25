@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Semillero Digital</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -29,12 +26,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for student in students_data %}
+                        {% for student_info in students_data %}
                         <tr>
-                            <td>{{ student.profile.name.fullName }}</td>
+                            <td>{{ student_info.profile.name.fullName }}</td>
                             <td>
                                 <ul style="margin: 0; padding-left: 20px;">
-                                    {% for sub in student.submissions %}
+                                    {% for sub in student_info.submissions %}
                                         <li><strong>{{ sub.title }}:</strong> {{ sub.status }}</li>
                                     {% else %}
                                         <li>No hay tareas en este curso.</li>
@@ -55,6 +52,5 @@
         {% endif %}
 
     </div>
-
 </body>
 </html>
