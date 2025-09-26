@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, redirect, request, session, render_template
 from flask_sqlalchemy import SQLAlchemy
 from google_auth_oauthlib.flow import Flow
@@ -10,31 +11,38 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-app.secret_key = 'clave-secreta-para-hackaton-final'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:final123@127.0.0.1/hackaton?client_encoding=utf8'
+# Lee las claves secretas desde las variables de entorno de Render
+app.secret_key = os.environ.get('SECRET_KEY')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 COORDINATOR_EMAIL = 'pemartdro7@gmail.com'
 
-# ... (El modelo de la DB no cambia) ...
 class TeacherStudentLink(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     teacher_email = db.Column(db.String(200), nullable=False)
     student_email = db.Column(db.String(200), nullable=False)
 
-# ... (La configuración de Google no cambia) ...
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-CLIENT_SECRETS_FILE = 'client_secret.json'
-REDIRECT_URI = 'http://127.0.0.1:5000/callback'
+# La siguiente línea es importante para que funcione detrás del proxy de Render
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' 
+
+# Leemos las credenciales de Google desde una variable de entorno
+CLIENT_SECRETS_CONFIG = json.loads(os.environ.get('CLIENT_SECRETS_CONTENT'))
+REDIRECT_URI = os.environ.get('REDIRECT_URI') # Leemos el redirect URI también
 SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly','https://www.googleapis.com/auth/classroom.rosters.readonly',
     'https://www.googleapis.com/auth/classroom.coursework.students.readonly','https://www.googleapis.com/auth/classroom.student-submissions.students.readonly',
     'https://www.googleapis.com/auth/userinfo.email','https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/classroom.profile.emails'
 ]
-flow = Flow.from_client_secrets_file(client_secrets_file=CLIENT_SECRETS_FILE, scopes=SCOPES, redirect_uri=REDIRECT_URI)
+
+flow = Flow.from_client_config(
+    client_config=CLIENT_SECRETS_CONFIG,
+    scopes=SCOPES,
+    redirect_uri=REDIRECT_URI
+)
 
 @app.route('/')
 def index():
@@ -51,7 +59,7 @@ def login():
     session['state'] = state
     return redirect(authorization_url)
 
-# ... (Las rutas /callback y /logout no cambian) ...
+# ... (Las rutas /callback y /logout ) ...
 @app.route('/callback')
 def callback():
     flow.fetch_token(authorization_response=request.url)
@@ -92,8 +100,8 @@ def dashboard():
     user_email = user_info.get('email')
     user_name = user_info.get('name')
 
-    # ... (El resto de la lógica de roles (Coordinador, Profesor, Alumno) no cambia) ...
-    # ...
+    # ... (lógica de roles (Coordinador, Profesor, Alumno)  ...
+   
     if user_email == COORDINATOR_EMAIL:
         # Lógica del Coordinador
         all_links = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
