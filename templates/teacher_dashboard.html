@@ -15,7 +15,6 @@
         </div>
         
         <div class="dashboard-layout">
-
             <div class="chart-container">
                 <h3>Progreso de tu Célula</h3>
                 <canvas id="teacherProgressChart"></canvas>
@@ -34,7 +33,11 @@
                         <tbody>
                             {% for student_info in students_data %}
                             <tr>
-                                <td>{{ student_info.profile.name.fullName }}</td>
+                                <td>
+                                    <a href="{{ student_info.gmail_link }}" target="_blank" title="Enviar email pre-escrito a {{ student_info.profile.name.fullName }}" class="profile-link">
+                                        {{ student_info.profile.name.fullName }} ✉️
+                                    </a>
+                                </td>
                                 <td>
                                     <ul class="task-list">
                                         {% for sub in student_info.submissions %}
@@ -81,11 +84,7 @@
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    }
-                }
+                plugins: { legend: { position: 'top' } }
             }
         });
     </script>

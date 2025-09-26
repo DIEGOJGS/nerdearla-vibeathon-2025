@@ -4,6 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from urllib.parse import quote # <-- 1. AÑADIMOS ESTA HERRAMIENTA
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 app.secret_key = 'clave-secreta-para-hackaton-final'
@@ -11,6 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:final123@127.0.0.
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# Definimos el correo del coordinador
 COORDINATOR_EMAIL = 'pemartdro7@gmail.com'
 
 class TeacherStudentLink(db.Model):
@@ -68,7 +73,6 @@ def logout():
     return redirect('/')
 
 
-# UBICACIÓN: En tu archivo app.py, reemplaza SOLO esta función
 @app.route('/dashboard')
 def dashboard():
     if 'credentials' not in session:
@@ -82,16 +86,14 @@ def dashboard():
 
     # 1. ¿El usuario es el COORDINADOR?
     if user_email == COORDINATOR_EMAIL:
-        # La lógica del coordinador ya está perfecta, no la tocamos.
+        # La lógica del coordinador no cambia
         all_links = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
         cells_data = {}
         student_emails_in_db = set(link.student_email for link in all_links)
         for link in all_links:
             teacher = link.teacher_email
-            if teacher not in cells_data:
-                cells_data[teacher] = 0
+            if teacher not in cells_data: cells_data[teacher] = 0
             cells_data[teacher] += 1
-        
         course_tasks_data = {}
         classroom_service = build('classroom', 'v1', credentials=creds)
         courses = classroom_service.courses().list().execute().get('courses', [])
@@ -101,13 +103,12 @@ def dashboard():
                 courseworks = classroom_service.courses().courseWork().list(courseId=course['id']).execute().get('courseWork', [])
                 task_count = len(courseworks) if courseworks else 0
                 course_tasks_data[course_name] = task_count
-        
         return render_template('coordinator_dashboard.html', user_name=user_name, cells_data=cells_data, course_tasks_data=course_tasks_data)
 
     # 2. ¿Es un PROFESOR?
     teacher_links = db.session.execute(db.select(TeacherStudentLink).filter_by(teacher_email=user_email)).scalars().all()
     if teacher_links:
-        # La lógica para buscar a los alumnos es la misma...
+        # La lógica del profesor ahora incluye la creación de la plantilla de email
         student_emails_to_find = {link.student_email for link in teacher_links}
         students_data_with_progress = []
         classroom_service = build('classroom', 'v1', credentials=creds)
@@ -133,9 +134,21 @@ def dashboard():
                                     if state == 'TURNED_IN': submission_status = 'Entregado'
                                     elif state == 'RETURNED': submission_status = 'Calificado'
                                 student_info['submissions'].append({'title': coursework.get('title', 'Tarea sin título'), 'status': submission_status})
+                        
+                        # --- 2. BLOQUE DE CÓDIGO AÑADIDO ---
+                        student_name = student_info['profile']['name']['givenName']
+                        subject = f"Seguimiento de tu progreso - Semillero Digital"
+                        body = f"Hola {student_name},\n\nSoy {user_name}, tu profesor en Semillero Digital.\n\nMe pongo en contacto contigo para conversar sobre tu progreso en el curso. ¿Hay algo en lo que te pueda ayudar?\n\n¡Espero tu respuesta!\n\nSaludos,"
+                        
+                        subject_encoded = quote(subject)
+                        body_encoded = quote(body)
+                        
+                        gmail_link = f"https://mail.google.com/mail/?view=cm&fs=1&to={student_email_from_profile}&su={subject_encoded}&body={body_encoded}"
+                        student_info['gmail_link'] = gmail_link
+                        # --- FIN DEL BLOQUE AÑADIDO ---
+
                         students_data_with_progress.append(student_info)
         
-        # --- NUEVA LÓGICA PARA CALCULAR EL GRÁFICO DEL PROFESOR ---
         teacher_turned_in = 0
         teacher_total_tasks = 0
         for student in students_data_with_progress:
