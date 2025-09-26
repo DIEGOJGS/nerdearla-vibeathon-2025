@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, redirect, request, session, render_template
 from flask_sqlalchemy import SQLAlchemy
 from google_auth_oauthlib.flow import Flow
@@ -10,8 +11,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-app.secret_key = 'clave-secreta-para-hackaton-final'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:final123@127.0.0.1/hackaton?client_encoding=utf8'
+# Para el despliegue en Render, es mejor leer las claves desde las variables de entorno
+app.secret_key = os.environ.get('SECRET_KEY', 'clave-local-por-defecto')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:final123@127.0.0.1/hackaton?client_encoding=utf8')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -24,15 +26,26 @@ class TeacherStudentLink(db.Model):
 
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-CLIENT_SECRETS_FILE = 'client_secret.json'
-REDIRECT_URI = 'http://127.0.0.1:5000/callback'
+
+# Usamos variables de entorno para Render, pero mantenemos el archivo para local
+if 'CLIENT_SECRETS_CONTENT' in os.environ:
+    CLIENT_SECRETS_CONFIG = json.loads(os.environ.get('CLIENT_SECRETS_CONTENT'))
+    REDIRECT_URI = os.environ.get('REDIRECT_URI')
+    flow_from_config = Flow.from_client_config
+    config_data = {'client_config': CLIENT_SECRETS_CONFIG}
+else:
+    CLIENT_SECRETS_FILE = 'client_secret.json'
+    REDIRECT_URI = 'http://127.0.0.1:5000/callback'
+    flow_from_config = Flow.from_client_secrets_file
+    config_data = {'client_secrets_file': CLIENT_SECRETS_FILE}
+
 SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly','https://www.googleapis.com/auth/classroom.rosters.readonly',
     'https://www.googleapis.com/auth/classroom.coursework.students.readonly','https://www.googleapis.com/auth/classroom.student-submissions.students.readonly',
     'https://www.googleapis.com/auth/userinfo.email','https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/classroom.profile.emails'
 ]
-flow = Flow.from_client_secrets_file(client_secrets_file=CLIENT_SECRETS_FILE, scopes=SCOPES, redirect_uri=REDIRECT_URI)
+flow = flow_from_config(**config_data, scopes=SCOPES, redirect_uri=REDIRECT_URI)
 
 # --- MODO DEMO: DATOS FALSOS ---
 DEMO_COORDINATOR_DATA = {
@@ -65,7 +78,8 @@ DEMO_STUDENT_DATA = {
 
 @app.route('/')
 def index():
-    if 'credentials' not in session: return render_template('login.html')
+    if 'credentials' not in session:
+        return render_template('login.html')
     return redirect('/dashboard')
 
 @app.route('/login')
@@ -97,6 +111,8 @@ def dashboard():
 
     try:
         creds = Credentials(**session['credentials'])
+        if not creds.refresh_token:
+            raise ValueError("Refresh token ausente en la sesión.")
     except Exception as e:
         logging.error(f"Error en credenciales de sesión: {e}. Forzando logout.")
         return redirect('/logout')
@@ -107,19 +123,97 @@ def dashboard():
     user_name = user_info.get('name')
 
     if user_email == COORDINATOR_EMAIL:
-        # Lógica del Coordinador real
-        # ... (código que ya funciona)
+        all_links = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
+        cells_data = {}
+        for link in all_links:
+            teacher = link.teacher_email
+            if teacher not in cells_data:
+                cells_data[teacher] = 0
+            cells_data[teacher] += 1
+        course_tasks_data = {}
+        classroom_service = build('classroom', 'v1', credentials=creds)
+        courses = classroom_service.courses().list().execute().get('courses', [])
+        if courses:
+            for course in courses:
+                course_name = course.get('name', 'Curso sin nombre')
+                courseworks = classroom_service.courses().courseWork().list(courseId=course['id']).execute().get('courseWork', [])
+                task_count = len(courseworks) if courseworks else 0
+                course_tasks_data[course_name] = task_count
         return render_template('coordinator_dashboard.html', user_name=user_name, cells_data=cells_data, course_tasks_data=course_tasks_data)
     
     teacher_links = db.session.execute(db.select(TeacherStudentLink).filter_by(teacher_email=user_email)).scalars().all()
     if teacher_links:
-        # Lógica del Profesor real
-        # ... (código que ya funciona)
+        student_emails_to_find = {link.student_email for link in teacher_links}
+        students_data_with_progress = []
+        classroom_service = build('classroom', 'v1', credentials=creds)
+        courses = classroom_service.courses().list().execute().get('courses', [])
+        if courses:
+            for course in courses:
+                course_id = course['id']
+                students_in_course = classroom_service.courses().students().list(courseId=course_id).execute().get('students', [])
+                if not students_in_course: continue
+                for student_summary in students_in_course:
+                    user_id = student_summary.get('userId')
+                    full_profile = classroom_service.userProfiles().get(userId=user_id).execute()
+                    student_email_from_profile = full_profile.get('emailAddress')
+                    if student_email_from_profile in student_emails_to_find:
+                        student_info = {'profile': full_profile, 'submissions': []}
+                        courseworks = classroom_service.courses().courseWork().list(courseId=course_id).execute().get('courseWork', [])
+                        if courseworks:
+                            for coursework in courseworks:
+                                submissions = classroom_service.courses().courseWork().studentSubmissions().list(courseId=course_id, courseWorkId=coursework['id'], userId=user_id).execute().get('studentSubmissions', [])
+                                submission_status = "Asignado"
+                                if submissions:
+                                    state = submissions[0].get('state')
+                                    if state == 'TURNED_IN': submission_status = 'Entregado'
+                                    elif state == 'RETURNED': submission_status = 'Calificado'
+                                student_info['submissions'].append({'title': coursework.get('title', 'Tarea sin título'), 'status': submission_status})
+                        
+                        student_name = student_info['profile']['name']['givenName']
+                        subject = f"Seguimiento de tu progreso - Semillero Digital"
+                        body = f"Hola {student_name},\n\nSoy {user_name}, tu profesor en Semillero Digital.\n\nMe pongo en contacto contigo para conversar sobre tu progreso en el curso. ¿Hay algo en lo que te pueda ayudar?\n\n¡Espero tu respuesta!\n\nSaludos,"
+                        subject_encoded = quote(subject)
+                        body_encoded = quote(body)
+                        gmail_link = f"https://mail.google.com/mail/?view=cm&fs=1&to={student_email_from_profile}&su={subject_encoded}&body={body_encoded}"
+                        student_info['gmail_link'] = gmail_link
+                        students_data_with_progress.append(student_info)
+        
+        teacher_turned_in = 0
+        teacher_total_tasks = 0
+        for student in students_data_with_progress:
+            teacher_total_tasks += len(student['submissions'])
+            for sub in student['submissions']:
+                if sub['status'] in ['Entregado', 'Calificado']:
+                    teacher_turned_in += 1
+        
+        teacher_progress_data = { "entregadas": teacher_turned_in, "asignadas": teacher_total_tasks - teacher_turned_in }
+        
         return render_template('teacher_dashboard.html', user_name=user_name, students_data=students_data_with_progress, progress_data=teacher_progress_data)
     else:
-        # Lógica del Alumno real
-        # ... (código que ya funciona)
+        classroom_service = build('classroom', 'v1', credentials=creds)
+        results = classroom_service.courses().list().execute()
+        courses = results.get('courses', [])
         return render_template('student_dashboard.html', user_name=user_name, courses=courses)
+
+@app.route('/manage-students', methods=['GET', 'POST'])
+def manage_students():
+    if 'credentials' not in session: return redirect('/login')
+    creds = Credentials(**session['credentials'])
+    user_info_service = build('oauth2', 'v2', credentials=creds)
+    user_info = user_info_service.userinfo().get().execute()
+    teacher_email = user_info.get('email')
+    if request.method == 'POST':
+        TeacherStudentLink.query.filter_by(teacher_email=teacher_email).delete()
+        emails_text = request.form.get('student_emails', '')
+        email_list = [email.strip() for email in emails_text.splitlines() if email.strip()]
+        for student_email in email_list:
+            new_link = TeacherStudentLink(teacher_email=teacher_email, student_email=student_email)
+            db.session.add(new_link)
+        db.session.commit()
+        return redirect('/dashboard')
+    current_links = TeacherStudentLink.query.filter_by(teacher_email=teacher_email).all()
+    current_emails_text = "\n".join([link.student_email for link in current_links])
+    return render_template('manage_students.html', current_emails=current_emails_text)
 
 # --- NUEVAS RUTAS PARA EL MODO DEMO ---
 @app.route('/demo-coordinator')
@@ -133,10 +227,6 @@ def demo_teacher():
 @app.route('/demo-student')
 def demo_student():
     return render_template('student_dashboard.html', **DEMO_STUDENT_DATA)
-
-@app.route('/manage-students', methods=['GET', 'POST'])
-def manage_students():
-    # ... (tu código de manage_students no cambia) ...
 
 if __name__ == '__main__':
     app.run(debug=True)
