@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard del Coordinador - Semillero Digital</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
 <body>
     <div class="container">
@@ -16,10 +14,17 @@
             <a href="/logout" class="logout-link">Cerrar sesión ({{ user_name }})</a>
         </div>
 
-        <h2>Supervisión de Células</h2>
+        <h2>Métricas Globales</h2>
 
-        <div style="width: 100%; margin-top: 2rem;">
-            <canvas id="myChart"></canvas>
+        <div class="charts-container">
+            <div class="chart-box">
+                <h3>Tareas por Curso</h3>
+                <canvas id="tasksChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Alumnos por Célula</h3>
+                <canvas id="cellsChart"></canvas>
+            </div>
         </div>
 
         <h2 style="margin-top: 3rem;">Datos en Tabla</h2>
@@ -47,46 +52,47 @@
     </div>
 
     <script>
-        // Obtenemos los datos que nos pasó Python/Flask
-        const cellsData = {{ cells_data|tojson }};
-        
-        // Preparamos los datos para el formato que necesita Chart.js
-        const labels = Object.keys(cellsData);
-        const data = Object.values(cellsData);
-        
-        // Obtenemos el "lienzo" (canvas) que creamos arriba
-        const ctx = document.getElementById('myChart');
-
-        // Creamos el nuevo gráfico
-        new Chart(ctx, {
-            type: 'bar', // Tipo de gráfico: barras
+        // --- GRÁFICO 1: TAREAS POR CURSO (NUEVO) ---
+        const tasksData = {{ course_tasks_data|tojson }};
+        const tasksCtx = document.getElementById('tasksChart');
+        new Chart(tasksCtx, {
+            type: 'bar',
             data: {
-                labels: labels,
+                labels: Object.keys(tasksData),
+                datasets: [{
+                    label: 'Nº de Tareas por Curso',
+                    data: Object.values(tasksData),
+                    backgroundColor: 'rgba(255, 171, 64, 0.7)', // Naranja Semillero
+                    borderColor: 'rgba(255, 171, 64, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // --- GRÁFICO 2: ALUMNOS POR CÉLULA ---
+        const cellsData = {{ cells_data|tojson }};
+        const cellsCtx = document.getElementById('cellsChart');
+        new Chart(cellsCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(cellsData),
                 datasets: [{
                     label: 'Nº de Alumnos por Profesor',
-                    data: data,
-                    backgroundColor: 'rgba(0, 77, 64, 0.7)', // Verde Semillero con transparencia
+                    data: Object.values(cellsData),
+                    backgroundColor: 'rgba(0, 77, 64, 0.7)', // Verde Semillero
                     borderColor: 'rgba(0, 77, 64, 1)',
                     borderWidth: 1
                 }]
             },
             options: {
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1 // Asegura que el eje Y vaya de 1 en 1
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false // Ocultamos la leyenda para un look más limpio
-                    }
-                }
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                plugins: { legend: { display: false } }
             }
         });
     </script>
-
 </body>
 </html>

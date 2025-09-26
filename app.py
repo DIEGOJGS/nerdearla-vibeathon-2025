@@ -4,17 +4,13 @@ from flask_sqlalchemy import SQLAlchemy
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-app.secret_key = 'clave-secreta-para-hackaton'
+app.secret_key = 'clave-secreta-para-hackaton-final'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:final123@127.0.0.1/hackaton?client_encoding=utf8'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Definimos el correo del coordinador
 COORDINATOR_EMAIL = 'pemartdro7@gmail.com'
 
 class TeacherStudentLink(db.Model):
@@ -43,10 +39,10 @@ flow = Flow.from_client_secrets_file(
     redirect_uri=REDIRECT_URI
 )
 
+# --- RUTAS DE AUTENTICACIÓN (Sin Cambios) ---
 @app.route('/')
 def index():
-    if 'credentials' not in session:
-        return render_template('login.html')
+    if 'credentials' not in session: return render_template('login.html')
     return redirect('/dashboard')
 
 @app.route('/login')
@@ -71,6 +67,7 @@ def logout():
     session.clear()
     return redirect('/')
 
+
 @app.route('/dashboard')
 def dashboard():
     if 'credentials' not in session:
@@ -84,6 +81,7 @@ def dashboard():
 
     # 1. ¿El usuario es el COORDINADOR?
     if user_email == COORDINATOR_EMAIL:
+        # Lógica para contar alumnos por profesor (cells_data)
         all_links = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
         cells_data = {}
         for link in all_links:
@@ -91,81 +89,60 @@ def dashboard():
             if teacher not in cells_data:
                 cells_data[teacher] = 0
             cells_data[teacher] += 1
-        return render_template('coordinator_dashboard.html', user_name=user_name, cells_data=cells_data)
-
-    # --- INICIO DE BLOQUE DE DIAGNÓSTICO ---
-    print("\n--- DIAGNÓSTICO DETALLADO PARA ROL PROFESOR/ALUMNO ---")
-    all_links_in_db = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
-    print(f"Paso A: Contenido total de la tabla 'teacher_student_link' ({len(all_links_in_db)} filas):")
-    for link in all_links_in_db:
-        print(f"  -> Fila en DB: Profesor='{link.teacher_email}' (Longitud: {len(link.teacher_email)}) | Alumno='{link.student_email}'")
-    print(f"Paso B: El email del usuario logueado es '{user_email}' (Longitud: {len(user_email)})")
-    # --- FIN DE BLOQUE DE DIAGNÓSTICO ---
-
-    # 2. Si no es coordinador, ¿es un PROFESOR?
-    teacher_links = db.session.execute(db.select(TeacherStudentLink).filter_by(teacher_email=user_email)).scalars().all()
-    
-    # --- DIAGNÓSTICO ADICIONAL ---
-    print(f"Paso C: La búsqueda en DB para el profesor '{user_email}' encontró {len(teacher_links)} resultados.")
-    print("---------------------------------------------------\n")
-    # --- FIN DE DIAGNÓSTICO ADICIONAL ---
-
-    if teacher_links:
-        student_emails_to_find = {link.student_email for link in teacher_links}
-        students_data_with_progress = []
         
+        # --- NUEVA LÓGICA SIMPLIFICADA PARA EL SEGUNDO GRÁFICO ---
+        course_tasks_data = {}
         classroom_service = build('classroom', 'v1', credentials=creds)
         courses = classroom_service.courses().list().execute().get('courses', [])
+        
+        if courses:
+            for course in courses:
+                course_name = course.get('name', 'Curso sin nombre')
+                courseworks = classroom_service.courses().courseWork().list(courseId=course['id']).execute().get('courseWork', [])
+                task_count = len(courseworks) if courseworks else 0
+                course_tasks_data[course_name] = task_count
+        
+        return render_template('coordinator_dashboard.html', user_name=user_name, cells_data=cells_data, course_tasks_data=course_tasks_data)
 
+    # 2. ¿Es un PROFESOR?
+    teacher_links = db.session.execute(db.select(TeacherStudentLink).filter_by(teacher_email=user_email)).scalars().all()
+    if teacher_links:
+        # La lógica del profesor no cambia, ya funciona perfectamente
+        student_emails_to_find = {link.student_email for link in teacher_links}
+        students_data_with_progress = []
+        classroom_service = build('classroom', 'v1', credentials=creds)
+        courses = classroom_service.courses().list().execute().get('courses', [])
         if courses:
             for course in courses:
                 course_id = course['id']
                 students_in_course = classroom_service.courses().students().list(courseId=course_id).execute().get('students', [])
-                
-                if not students_in_course:
-                    continue
-
+                if not students_in_course: continue
                 for student_summary in students_in_course:
                     user_id = student_summary.get('userId')
                     full_profile = classroom_service.userProfiles().get(userId=user_id).execute()
                     student_email_from_profile = full_profile.get('emailAddress')
-
                     if student_email_from_profile in student_emails_to_find:
                         student_info = {'profile': full_profile, 'submissions': []}
-                        
                         courseworks = classroom_service.courses().courseWork().list(courseId=course_id).execute().get('courseWork', [])
                         if courseworks:
                             for coursework in courseworks:
-                                submissions = classroom_service.courses().courseWork().studentSubmissions().list(
-                                    courseId=course_id,
-                                    courseWorkId=coursework['id'],
-                                    userId=user_id
-                                ).execute().get('studentSubmissions', [])
-                                
+                                submissions = classroom_service.courses().courseWork().studentSubmissions().list(courseId=course_id, courseWorkId=coursework['id'], userId=user_id).execute().get('studentSubmissions', [])
                                 submission_status = "Asignado"
                                 if submissions:
                                     state = submissions[0].get('state')
-                                    if state == 'TURNED_IN':
-                                        submission_status = 'Entregado'
-                                    elif state == 'RETURNED':
-                                        submission_status = 'Calificado'
-                                
-                                student_info['submissions'].append({
-                                    'title': coursework.get('title', 'Tarea sin título'),
-                                    'status': submission_status
-                                })
-                        
+                                    if state == 'TURNED_IN': submission_status = 'Entregado'
+                                    elif state == 'RETURNED': submission_status = 'Calificado'
+                                student_info['submissions'].append({'title': coursework.get('title', 'Tarea sin título'), 'status': submission_status})
                         students_data_with_progress.append(student_info)
-        
         return render_template('teacher_dashboard.html', user_name=user_name, students_data=students_data_with_progress)
 
-    # 3. Si no es ninguno de los anteriores, es un ALUMNO
+    # 3. Es un ALUMNO
     else:
+        # La lógica del alumno no cambia
         classroom_service = build('classroom', 'v1', credentials=creds)
         results = classroom_service.courses().list().execute()
         courses = results.get('courses', [])
-        
         return render_template('student_dashboard.html', user_name=user_name, courses=courses)
-
+    
 if __name__ == '__main__':
     app.run(debug=True)

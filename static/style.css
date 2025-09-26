@@ -170,3 +170,17 @@ td ul li {
     max-width: 150px; /* Cambia este valor para ajustar el tamaño */
     margin-bottom: 1rem;
 }
+/* --- Estilos para Contenedor de Gráficos --- */
+.charts-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap; /* <-- ESTA LÍNEA ES LA MAGIA */
+}
+.chart-box {
+    width: 45%;
+    min-width: 300px; /* Evita que los gráficos se aplasten demasiado */
+    text-align: center;
+}
