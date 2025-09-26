@@ -1,11 +1,11 @@
-/* UBICACIÓN: static/style.css */
 :root {
     --verde-principal: #004d40;
     --naranja-acento: #ffab40;
     --gris-fondo: #f5f5f5;
     --texto-principal: #212121;
     --fuente-principal: 'Lato', sans-serif;
-    --sombra-suave: 0 2px 4px rgba(0,0,0,0.1);
+    --sombra-suave: 0 4px 6px rgba(0,0,0,0.1);
+    --border-radius: 8px;
 }
 
 body {
@@ -17,11 +17,11 @@ body {
 }
 
 .container {
-    max-width: 900px;
+    max-width: 1200px; /* Hacemos el contenedor principal más ancho para el nuevo diseño */
     margin: 2rem auto;
     padding: 2rem;
     background-color: white;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     box-shadow: var(--sombra-suave);
 }
 
@@ -29,6 +29,14 @@ h1 {
     color: var(--verde-principal);
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
+}
+
+h2, h3 {
+    color: var(--verde-principal);
+    border-bottom: 2px solid var(--naranja-acento);
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
 }
 
 .header {
@@ -50,49 +58,44 @@ h1 {
     text-decoration: underline;
 }
 
-h2 {
-    color: var(--verde-principal);
-    border-bottom: 2px solid var(--naranja-acento);
-    padding-bottom: 0.5rem;
-    margin-top: 2rem;
-}
-
+/* --- ESTILOS MEJORADOS PARA LA TABLA --- */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1.5rem;
 }
 
 thead th {
-    background-color: var(--verde-principal);
-    color: white;
+    background-color: #f8f9fa;
+    color: var(--verde-principal);
     padding: 12px 15px;
     text-align: left;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid #dee2e6;
 }
 
-tbody tr:nth-of-type(even) {
-    background-color: #f9f9f9;
-}
-
-tbody tr:hover {
-    background-color: #f1f1f1;
-}
-
-/* --- MEJORAS DE ESTILO (NUEVO) --- */
 td {
-    padding: 15px; /* Aumentamos el espacio interno */
-    vertical-align: top; /* Alineamos todo arriba */
-    border-bottom: 1px solid #ddd;
+    padding: 15px;
+    vertical-align: top;
+    border-bottom: 1px solid #dee2e6;
 }
 
-td ul {
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.task-list {
     margin: 0;
-    padding-left: 0; /* Quitamos el espacio izquierdo de la lista */
-    list-style-type: none; /* Quitamos los puntos de la lista */
+    padding-left: 0;
+    list-style-type: none;
 }
 
-td ul li {
-    margin-bottom: 8px; /* Añadimos espacio entre las tareas */
+.task-list li {
+    margin-bottom: 8px;
+}
+
+.task-list li:last-child {
+    margin-bottom: 0;
 }
 
 /* --- Estilos para los Estados de las Tareas --- */
@@ -104,19 +107,10 @@ td ul li {
     color: white;
     text-transform: uppercase;
 }
+.status-entregado { background-color: #28a745; }
+.status-calificado { background-color: #007bff; }
+.status-asignado { background-color: #ffc107; color: #212121; }
 
-.status-entregado {
-    background-color: #004d40; /* Verde Semillero */
-}
-
-.status-calificado {
-    background-color: #0d47a1; /* Azul */
-}
-
-.status-asignado {
-    background-color: #ffab40; /* Naranja Semillero */
-    color: #212121;
-}
 /* --- Estilos para la Página de Login --- */
 .login-container {
     display: flex;
@@ -166,10 +160,7 @@ td ul li {
     height: 20px;
     margin-right: 12px;
 }
-.login-box .logo {
-    max-width: 150px; /* Cambia este valor para ajustar el tamaño */
-    margin-bottom: 1rem;
-}
+
 /* --- Estilos para Contenedor de Gráficos --- */
 .charts-container {
     display: flex;
@@ -177,10 +168,26 @@ td ul li {
     align-items: center;
     gap: 2rem;
     margin-top: 2rem;
-    flex-wrap: wrap; /* <-- ESTA LÍNEA ES LA MAGIA */
+    flex-wrap: wrap;
 }
 .chart-box {
     width: 45%;
-    min-width: 300px; /* Evita que los gráficos se aplasten demasiado */
+    min-width: 300px;
     text-align: center;
+}
+
+/* --- ESTILOS DE LAYOUT DEL DASHBOARD DEL PROFESOR (NUEVO) --- */
+.dashboard-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.chart-container {
+    flex: 1;
+    max-width: 350px;
+}
+
+.table-container {
+    flex: 2;
 }

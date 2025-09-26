@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard del Profesor - Semillero Digital</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -13,47 +14,80 @@
             <a href="/logout" class="logout-link">Cerrar sesión</a>
         </div>
         
-        <h2>Progreso de Alumnos Asignados</h2>
+        <div class="dashboard-layout">
 
-        {% if students_data %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nombre del Alumno</th>
-                        <th>Progreso de Tareas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student_info in students_data %}
-                    <tr>
-                        <td>{{ student_info.profile.name.fullName }}</td>
-                        <td>
-                            <ul style="margin: 0; padding-left: 20px;">
-                                {% for sub in student_info.submissions %}
-                                    <li>
-                                        <strong>{{ sub.title }}:</strong> 
-                                        <span class="status 
-                                            {% if sub.status == 'Entregado' %}
-                                                status-entregado
-                                            {% elif sub.status == 'Calificado' %}
-                                                status-calificado
-                                            {% else %}
-                                                status-asignado
-                                            {% endif %}
-                                        ">{{ sub.status }}</span>
-                                    </li>
-                                {% else %}
-                                    <li>No hay tareas asignadas en este curso.</li>
-                                {% endfor %}
-                            </ul>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No se encontraron datos de progreso para los alumnos asignados.</p>
-        {% endif %}
+            <div class="chart-container">
+                <h3>Progreso de tu Célula</h3>
+                <canvas id="teacherProgressChart"></canvas>
+            </div>
+
+            <div class="table-container">
+                <h3>Detalle de Alumnos</h3>
+                {% if students_data %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre del Alumno</th>
+                                <th>Progreso de Tareas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student_info in students_data %}
+                            <tr>
+                                <td>{{ student_info.profile.name.fullName }}</td>
+                                <td>
+                                    <ul class="task-list">
+                                        {% for sub in student_info.submissions %}
+                                            <li>
+                                                <strong>{{ sub.title }}:</strong> 
+                                                <span class="status 
+                                                    {% if sub.status == 'Entregado' %} status-entregado
+                                                    {% elif sub.status == 'Calificado' %} status-calificado
+                                                    {% else %} status-asignado
+                                                    {% endif %}
+                                                ">{{ sub.status }}</span>
+                                            </li>
+                                        {% else %}
+                                            <li>No hay tareas asignadas.</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No se encontraron datos de progreso para los alumnos asignados.</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
+
+    <script>
+        // El script de Chart.js no cambia
+        const progressData = {{ progress_data|tojson }};
+        const progressCtx = document.getElementById('teacherProgressChart');
+        new Chart(progressCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Entregadas', 'Asignadas/Pendientes'],
+                datasets: [{
+                    label: 'Estado de Tareas',
+                    data: [progressData.entregadas, progressData.asignadas],
+                    backgroundColor: [ 'rgba(0, 77, 64, 0.8)', 'rgba(255, 171, 64, 0.8)' ],
+                    borderColor: [ '#fff' ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

@@ -68,6 +68,7 @@ def logout():
     return redirect('/')
 
 
+# UBICACIÓN: En tu archivo app.py, reemplaza SOLO esta función
 @app.route('/dashboard')
 def dashboard():
     if 'credentials' not in session:
@@ -81,20 +82,19 @@ def dashboard():
 
     # 1. ¿El usuario es el COORDINADOR?
     if user_email == COORDINATOR_EMAIL:
-        # Lógica para contar alumnos por profesor (cells_data)
+        # La lógica del coordinador ya está perfecta, no la tocamos.
         all_links = db.session.execute(db.select(TeacherStudentLink)).scalars().all()
         cells_data = {}
+        student_emails_in_db = set(link.student_email for link in all_links)
         for link in all_links:
             teacher = link.teacher_email
             if teacher not in cells_data:
                 cells_data[teacher] = 0
             cells_data[teacher] += 1
         
-        # --- NUEVA LÓGICA SIMPLIFICADA PARA EL SEGUNDO GRÁFICO ---
         course_tasks_data = {}
         classroom_service = build('classroom', 'v1', credentials=creds)
         courses = classroom_service.courses().list().execute().get('courses', [])
-        
         if courses:
             for course in courses:
                 course_name = course.get('name', 'Curso sin nombre')
@@ -107,7 +107,7 @@ def dashboard():
     # 2. ¿Es un PROFESOR?
     teacher_links = db.session.execute(db.select(TeacherStudentLink).filter_by(teacher_email=user_email)).scalars().all()
     if teacher_links:
-        # La lógica del profesor no cambia, ya funciona perfectamente
+        # La lógica para buscar a los alumnos es la misma...
         student_emails_to_find = {link.student_email for link in teacher_links}
         students_data_with_progress = []
         classroom_service = build('classroom', 'v1', credentials=creds)
@@ -134,7 +134,22 @@ def dashboard():
                                     elif state == 'RETURNED': submission_status = 'Calificado'
                                 student_info['submissions'].append({'title': coursework.get('title', 'Tarea sin título'), 'status': submission_status})
                         students_data_with_progress.append(student_info)
-        return render_template('teacher_dashboard.html', user_name=user_name, students_data=students_data_with_progress)
+        
+        # --- NUEVA LÓGICA PARA CALCULAR EL GRÁFICO DEL PROFESOR ---
+        teacher_turned_in = 0
+        teacher_total_tasks = 0
+        for student in students_data_with_progress:
+            teacher_total_tasks += len(student['submissions'])
+            for sub in student['submissions']:
+                if sub['status'] in ['Entregado', 'Calificado']:
+                    teacher_turned_in += 1
+        
+        teacher_progress_data = {
+            "entregadas": teacher_turned_in,
+            "asignadas": teacher_total_tasks - teacher_turned_in
+        }
+        
+        return render_template('teacher_dashboard.html', user_name=user_name, students_data=students_data_with_progress, progress_data=teacher_progress_data)
 
     # 3. Es un ALUMNO
     else:
