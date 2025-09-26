@@ -29,15 +29,17 @@
 
         <h2 style="margin-top: 3rem;">Datos en Tabla</h2>
         
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Buscar por email de profesor..." class="search-input">
+        
         {% if cells_data %}
-            <table>
+            <table id="teacherTable">
                 <thead>
                     <tr>
                         <th>Email del Profesor</th>
                         <th>Nº de Alumnos Asignados</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="teacherTableBody">
                     {% for teacher, count in cells_data.items() %}
                     <tr>
                         <td>{{ teacher }}</td>
@@ -52,7 +54,7 @@
     </div>
 
     <script>
-        // --- GRÁFICO 1: TAREAS POR CURSO (NUEVO) ---
+        // --- GRÁFICO 1: TAREAS POR CURSO ---
         const tasksData = {{ course_tasks_data|tojson }};
         const tasksCtx = document.getElementById('tasksChart');
         new Chart(tasksCtx, {
@@ -93,6 +95,25 @@
                 plugins: { legend: { display: false } }
             }
         });
+
+        // --- FUNCIÓN PARA EL FILTRO DE BÚSQUEDA ---
+        function filterTable() {
+            const filter = document.getElementById('searchInput').value.toLowerCase();
+            const tableBody = document.getElementById('teacherTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                let td = rows[i].getElementsByTagName('td')[0];
+                if (td) {
+                    let textValue = td.textContent || td.innerText;
+                    if (textValue.toLowerCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
+        }
     </script>
 </body>
 </html>

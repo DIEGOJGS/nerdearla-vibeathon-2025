@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Alumnos - Semillero Digital</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Gestionar mi Célula</h1>
+            <a href="{{ url_for('dashboard') }}" class="logout-link">Volver al Dashboard</a>
+        </div>
+
+        <p>Pega la lista de correos electrónicos de los alumnos de tu célula en el campo de abajo (un correo por línea). Al guardar, esta lista reemplazará la actual.</p>
+
+        <form method="POST" style="margin-top: 1.5rem;">
+            <textarea name="student_emails" rows="10" style="width: 100%; font-size: 1rem; padding: 10px;">{{ current_emails }}</textarea>
+            <br>
+            <button type="submit" class="login-button" style="margin-top: 1rem;">Guardar Cambios</button>
+        </form>
+    </div>
+</body>
+</html>

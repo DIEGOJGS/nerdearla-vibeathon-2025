@@ -200,3 +200,13 @@ tbody tr:last-child td {
     text-decoration: underline;
     color: var(--naranja-acento);
 }
+/* --- Estilo para el Filtro de Búsqueda --- */
+.search-input {
+    width: 100%;
+    padding: 10px 15px;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box; /* Importante para que el padding no afecte el ancho */
+}
