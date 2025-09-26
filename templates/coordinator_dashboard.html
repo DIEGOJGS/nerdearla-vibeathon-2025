@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard del Coordinador - Semillero Digital</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 <body>
     <div class="container">
@@ -12,7 +15,15 @@
             <h1>Panel de Coordinación</h1>
             <a href="/logout" class="logout-link">Cerrar sesión ({{ user_name }})</a>
         </div>
+
         <h2>Supervisión de Células</h2>
+
+        <div style="width: 100%; margin-top: 2rem;">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <h2 style="margin-top: 3rem;">Datos en Tabla</h2>
+        
         {% if cells_data %}
             <table>
                 <thead>
@@ -34,5 +45,48 @@
             <p>No se encontraron datos de profesores o alumnos en la base de datos.</p>
         {% endif %}
     </div>
+
+    <script>
+        // Obtenemos los datos que nos pasó Python/Flask
+        const cellsData = {{ cells_data|tojson }};
+        
+        // Preparamos los datos para el formato que necesita Chart.js
+        const labels = Object.keys(cellsData);
+        const data = Object.values(cellsData);
+        
+        // Obtenemos el "lienzo" (canvas) que creamos arriba
+        const ctx = document.getElementById('myChart');
+
+        // Creamos el nuevo gráfico
+        new Chart(ctx, {
+            type: 'bar', // Tipo de gráfico: barras
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Nº de Alumnos por Profesor',
+                    data: data,
+                    backgroundColor: 'rgba(0, 77, 64, 0.7)', // Verde Semillero con transparencia
+                    borderColor: 'rgba(0, 77, 64, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1 // Asegura que el eje Y vaya de 1 en 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false // Ocultamos la leyenda para un look más limpio
+                    }
+                }
+            }
+        });
+    </script>
+
 </body>
 </html>
