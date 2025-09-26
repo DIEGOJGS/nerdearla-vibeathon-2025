@@ -117,3 +117,56 @@ td ul li {
     background-color: #ffab40; /* Naranja Semillero */
     color: #212121;
 }
+/* --- Estilos para la Página de Login --- */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+}
+
+.login-box {
+    background-color: white;
+    padding: 3rem 4rem;
+    border-radius: 8px;
+    box-shadow: var(--sombra-suave);
+}
+
+.login-box .logo {
+    max-width: 150px;
+    margin-bottom: 1rem;
+}
+
+.login-box p {
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.login-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 24px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    font-size: 1rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.login-button:hover {
+    background-color: #f9f9f9;
+}
+
+.login-button img {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+}
+.login-box .logo {
+    max-width: 150px; /* Cambia este valor para ajustar el tamaño */
+    margin-bottom: 1rem;
+}

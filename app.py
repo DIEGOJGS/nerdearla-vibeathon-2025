@@ -46,7 +46,7 @@ flow = Flow.from_client_secrets_file(
 @app.route('/')
 def index():
     if 'credentials' not in session:
-        return '<a href="/login">Login con Google</a>'
+        return render_template('login.html')
     return redirect('/dashboard')
 
 @app.route('/login')

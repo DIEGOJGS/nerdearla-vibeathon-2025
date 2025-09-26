@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido - Dashboard Semillero Digital</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Semillero Digital" class="logo">
+            <h1>Dashboard de Gestión</h1>
+            <p>Una capa de inteligencia sobre Google Classroom.</p>
+            <a href="/login" class="login-button">
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo">
+                <span>Ingresar con Google</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
